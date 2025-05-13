@@ -1,4 +1,3 @@
-# File: app.py
 import streamlit as st
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -64,7 +63,7 @@ agent_executor = AgentExecutor(agent=agent, tools=tools, memory=st.session_state
 
 st.title("AI Research Assistant")
 ## add mistral API key input
-mistral_api_key = st.text_input("Enter your Mistral API key:", type="password", value=os.getenv("MISTRAL_API_KEY"))
+mistral_api_key = st.text_input("Enter your Mistral API key:", type="password")
 os.environ["MISTRAL_API_KEY"] = mistral_api_key
 query = st.text_input("Enter your research query:")
 
@@ -76,9 +75,17 @@ if st.button("Research"):
 
                 # Check if 'output' key exists and is a non-empty string
                 if "output" in raw_response and isinstance(raw_response["output"], str) and raw_response["output"].strip():
+                    output_string = raw_response["output"].strip()
+
+                    # Clean the string: remove markdown code block delimiters if present
+                    if output_string.startswith("```json"):
+                        output_string = output_string[len("```json"):].lstrip() # Remove ```json and leading whitespace
+                    if output_string.endswith("```"):
+                        output_string = output_string[:-len("```")].rstrip() # Remove ``` and trailing whitespace
+
                     try:
-                        # Aplicar .strip() antes de intentar parsear como JSON
-                        parsed = json.loads(raw_response["output"].strip())
+                        # Attempt to parse the cleaned string as JSON
+                        parsed = json.loads(output_string)
 
                         st.subheader("Research Results:")
                         st.write(f"**Topic:** {parsed['topic']}")
@@ -88,7 +95,7 @@ if st.button("Research"):
                     except json.JSONDecodeError as e:
                         st.error(f"Error decoding JSON: {e}")
                         st.write("Could not parse the agent's output as JSON. The output was:")
-                        st.code(raw_response["output"]) # Display the raw string output
+                        st.code(raw_response["output"]) # Display the original raw string output for debugging
                 elif "output" in raw_response and isinstance(raw_response["output"], str) and not raw_response["output"].strip():
                      st.error("Agent produced an empty output string.")
                      st.write("Raw response from agent:")
@@ -112,4 +119,3 @@ st.subheader("Chat History")
 for message in st.session_state.memory.chat_memory.messages:
     st.write(f"**{message.type}:** {message.content}")
     st.write("---")
-
