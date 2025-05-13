@@ -1,0 +1,5 @@
+--- Research Output ---
+Timestamp: 2025-05-13 11:47:35
+
+{"topic": "Figma", "summary": "Figma is a popular web-based design tool used primarily for vector graphics and user interface design. It is known for its collaborative features, allowing multiple users to work on the same project in real-time. Figma offers a range of design tools, including vector drawing, prototyping, and code generation, making it a versatile choice for designers and teams. Its cloud-based nature ensures that designs are always up-to-date and accessible from anywhere.", "sources": ["https://www.figma.com/", "https://en.wikipedia.org/wiki/Figma"], "tools_used": []}
+

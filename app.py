@@ -1,3 +1,4 @@
+# File: app.py
 import streamlit as st
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -8,7 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain.memory import ConversationBufferMemory
-from tools import save_tool # Asegúrate de que search_tool y wiki_tool estén disponibles si se usan en otro lugar
+from tools import save_tool, search_tool, wiki_tool
 import os
 import json
 import traceback # Import traceback for detailed error info
@@ -32,12 +33,14 @@ prompt = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            """
-            You are an AI-powered research assistant designed to generate concise, well-structured responses.
-            Use available tools when helpful. Present your output clearly in the following format:
-            \n{format_instructions}
-            Respond only with this format and no extra explanation.
-            """,
+            "\"\"\"\n"
+            "You are an AI-powered research assistant. Your SOLE purpose is to conduct research using available tools and provide the final results in a STRICT JSON format.\n"
+            "Use available tools ONLY when necessary to gather information for the research.\n"
+            "When you have completed the research and are ready to provide the final answer, you MUST present your output in the following JSON format, and NOTHING else:\n"
+            "\\n{format_instructions}\n"
+            "Provide ONLY the JSON object. Do NOT include any introductory text, explanations, or markdown code block delimiters (like ```json```) before or after the JSON.\n\n"
+            "If you use the `save_text_to_file` tool, the `data` argument for this tool MUST be the complete JSON string containing the research results (topic, summary, sources, tools_used) that you generate as your final answer.\n"
+            "\"\"\"",
         ),
         ("placeholder", "{chat_history}"),
         ("human", "{query}"),
@@ -47,7 +50,7 @@ prompt = ChatPromptTemplate.from_messages(
 
 # Asegúrate de incluir search_tool y wiki_tool si son necesarios para el agente
 # tools = [save_tool, search_tool, wiki_tool]
-tools = [save_tool] # Usando solo save_tool como en tu código actual
+tools = [save_tool, wiki_tool] # Usando solo save_tool como en tu código actual
 agent = create_tool_calling_agent(
     llm=llm,
     prompt=prompt,
@@ -93,9 +96,12 @@ if st.button("Research"):
                         st.write(f"**Sources:** {', '.join(parsed['sources'])}")
                         st.write(f"**Tools Used:** {', '.join(parsed['tools_used'])}")
                     except json.JSONDecodeError as e:
-                        st.error(f"Error decoding JSON: {e}")
-                        st.write("Could not parse the agent's output as JSON. The output was:")
-                        st.code(raw_response["output"]) # Display the original raw string output for debugging
+                        # If JSON parsing fails, display the raw output as text
+                        st.subheader("Agent Output (Not JSON):")
+                        st.write("The agent did not return output in the expected JSON format.")
+                        st.code(raw_response["output"]) # Display the original raw string output
+                        st.error(f"Error decoding JSON: {e}") # Still show the error for debugging
+
                 elif "output" in raw_response and isinstance(raw_response["output"], str) and not raw_response["output"].strip():
                      st.error("Agent produced an empty output string.")
                      st.write("Raw response from agent:")
